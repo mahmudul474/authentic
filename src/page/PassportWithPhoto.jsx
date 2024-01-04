@@ -1,46 +1,82 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { FaCamera } from 'react-icons/fa'; // Assuming you're using FontAwesome or a similar library
+import {useRef,useEffect} from 'react'
 
-const LiveCamera = () => {
-  const videoRef = useRef();
-  const [isCameraOpen, setIsCameraOpen] = useState(false);
+import * as faceapi from 'face-api.js'
 
-  useEffect(() => {
-    const startCamera = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          setIsCameraOpen(true);
-        }
-      } catch (err) {
-        console.error('Error accessing the camera:', err);
-        setIsCameraOpen(false);
-      }
-    };
+function App(){
+  const videoRef = useRef()
+  const canvasRef = useRef()
 
-    startCamera();
+  // LOAD FROM USEEFFECT
+  useEffect(()=>{
+    startVideo()
+    videoRef && loadModels()
 
-    return () => {
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject;
-        const tracks = stream.getTracks();
-        tracks.forEach(track => track.stop());
-      }
-    };
-  }, []);
+  },[])
+
+
+
+  // OPEN YOU FACE WEBCAM
+  const startVideo = ()=>{
+    navigator.mediaDevices.getUserMedia({video:true})
+    .then((currentStream)=>{
+      videoRef.current.srcObject = currentStream
+    })
+    .catch((err)=>{
+      console.log(err)
+    })
+  }
+  // LOAD MODELS FROM FACE API
+
+  const loadModels = ()=>{
+    Promise.all([
+      // THIS FOR FACE DETECT AND LOAD FROM YOU PUBLIC/MODELS DIRECTORY
+      faceapi.nets.tinyFaceDetector.loadFromUri("/models"),
+      faceapi.nets.faceLandmark68Net.loadFromUri("/models"),
+      faceapi.nets.faceRecognitionNet.loadFromUri("/models"),
+      faceapi.nets.faceExpressionNet.loadFromUri("/models")
+
+      ]).then(()=>{
+      faceMyDetect()
+    })
+  }
+
+  const faceMyDetect = ()=>{
+    setInterval(async()=>{
+      const detections = await faceapi.detectAllFaces(videoRef.current,
+        new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions()
+
+      // DRAW YOU FACE IN WEBCAM
+      canvasRef.current.innerHtml = faceapi.createCanvasFromMedia(videoRef.current)
+      faceapi.matchDimensions(canvasRef.current,{
+        width:940,
+        height:650
+      })
+
+      const resized = faceapi.resizeResults(detections,{
+         width:940,
+        height:650
+      })
+
+      faceapi.draw.drawDetections(canvasRef.current,resized)
+      faceapi.draw.drawFaceLandmarks(canvasRef.current,resized)
+      faceapi.draw.drawFaceExpressions(canvasRef.current,resized)
+
+
+    },1000)
+  }
 
   return (
-    <div>
-      {isCameraOpen ? (
-        <video ref={videoRef} autoPlay />
-      ) : (
-        <div style={{ width: '100%', height: '300px', backgroundColor: '#ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <FaCamera size={50} /> {/* Replace with your preferred camera icon */}
-        </div>
-      )}
+    <div className="myapp">
+    <h1>FAce Detection</h1>
+      <div className="appvide">
+        
+      <video crossOrigin="anonymous" ref={videoRef} autoPlay></video>
+      </div>
+      <canvas ref={canvasRef} width="940" height="650"
+      className="appcanvas"/>
     </div>
-  );
-};
+    )
 
-export default LiveCamera;
+}
+
+export default App;
