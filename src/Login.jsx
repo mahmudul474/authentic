@@ -1,5 +1,6 @@
 import { useContext, useState } from 'react';
 import { AuthContext } from './context/AutheProbider';
+import { Link } from 'react-router-dom';
 
 function CreditCardForm() {
  
@@ -46,6 +47,7 @@ function CreditCardForm() {
   return (
 
     <>
+   <Link to="/info-with-passposrt"> <button >Go</button></Link>
  
 <div className="w-full min-h-screen bg-gray-50 flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
   <div className="w-full sm:max-w-md p-5 mx-auto">
