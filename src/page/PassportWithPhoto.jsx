@@ -1,63 +1,46 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
+import { FaCamera } from 'react-icons/fa'; // Assuming you're using FontAwesome or a similar library
 
-const Camera = () => {
-  const [imageSrc, setImageSrc] = useState('');
+const LiveCamera = () => {
   const videoRef = useRef();
-  const mediaStreamRef = useRef();
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      mediaStreamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
+  useEffect(() => {
+    const startCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setIsCameraOpen(true);
+        }
+      } catch (err) {
+        console.error('Error accessing the camera:', err);
+        setIsCameraOpen(false);
       }
-    } catch (err) {
-      console.error('Error accessing the camera:', err);
-    }
-  };
+    };
 
-  const takePhoto = () => {
-    if (videoRef.current) {
-      const video = videoRef.current;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/png');
-      setImageSrc(dataUrl);
-    }
-  };
+    startCamera();
 
-  const retakePhoto = () => {
-    setImageSrc('');
-  };
-
-  const deletePhoto = () => {
-    setImageSrc('');
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach(track => track.stop());
-    }
-  };
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject;
+        const tracks = stream.getTracks();
+        tracks.forEach(track => track.stop());
+      }
+    };
+  }, []);
 
   return (
     <div>
-      <div>
+      {isCameraOpen ? (
         <video ref={videoRef} autoPlay />
-      </div>
-      <div>
-        <button onClick={startCamera}>Start Camera</button>
-        <button onClick={takePhoto}>Take Photo</button>
-        <button onClick={retakePhoto}>Retake Photo</button>
-        <button onClick={deletePhoto}>Delete Photo</button>
-      </div>
-      {imageSrc && (
-        <div>
-          <img src={imageSrc} alt="Captured" />
+      ) : (
+        <div style={{ width: '100%', height: '300px', backgroundColor: '#ccc', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <FaCamera size={50} /> {/* Replace with your preferred camera icon */}
         </div>
       )}
     </div>
   );
 };
 
-export default Camera;
+export default LiveCamera;
